@@ -1,0 +1,31 @@
+{
+  "name": "@kno/ui",
+  "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "",
+  "main": "es/index.mjs",
+  "module": "es/index.mjs",
+  "types": "es/index.d.mts",
+  "files": [
+    "es"
+  ],
+  "scripts": {
+    "dev": "tsdown --watch",
+    "build": "tsdown"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.14.0",
+  "devDependencies": {
+    "react": "catalog:",
+    "@types/react": "catalog:",
+    "typescript": "catalog:",
+    "tsdown": "0.22.12"
+  },
+  "peerDependencies": {
+    "react": "catalog:"
+  }
+}

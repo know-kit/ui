@@ -1,0 +1,7 @@
+{
+  "*.{js,jsx,ts,tsx}": ["eslint --fix"],
+  "*.{css,tsx}": ["stylelint"],
+  "*.{html,js,cjs,mjs,ts,tsx,css,scss,md}": [
+    "cspell lint --color --show-suggestions"
+  ]
+}

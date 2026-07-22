@@ -1,0 +1,25 @@
+{
+  "name": "@kno/website",
+  "private": true,
+  "version": "0.0.1",
+  "description": "A react library developed with dumi",
+  "scripts": {
+    "dev": "dumi dev",
+    "build": "dumi build"
+  },
+  "authors": [],
+  "peerDependencies": {
+    "react": ">=16.9.0",
+    "react-dom": ">=16.9.0"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "dumi": "2.4.47",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "@kno/ui": "workspace:*",
+    "dumi-theme-lobehub": "5.0.0",
+    "typescript": "catalog:"
+  }
+}
