@@ -9,7 +9,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "commit": "czg",
+    "commit": "HUSKY_ALLOW_COMMIT=1 czg",
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "changeset:publish": "changeset publish",
@@ -18,11 +18,12 @@
     "changelog:preview": "conventional-changelog -p conventionalcommits --stdout",
     "prepare": "husky",
     "lint": "eslint --fix --cache",
-    "lint:style": "stylelint \"{ui,website}/**/*.{css,tsx}\"",
+    "lint:style": "stylelint \"packages/**/*.{css,tsx}\" \"apps/**/*.{css,tsx}\"",
     "test": "turbo run build && vitest",
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "spellcheck": "cspell lint --dot --gitignore --color --cache --show-suggestions \"(ui|website)/**/*.@(html|js|cjs|mjs|ts|tsx|css|scss|md)\""
+    "spellcheck": "cspell lint --dot --gitignore --color --cache --show-suggestions \"packages/**/*.{html,js,cjs,mjs,ts,tsx,css,scss,md}\" \"apps/**/*.{html,js,cjs,mjs,ts,tsx,css,scss,md}\"",
+    "release": "pnpm build && pnpm changeset:publish"
   },
   "type": "module",
   "keywords": [],
