@@ -1,0 +1,61 @@
+name: Publish package
+
+on:
+  # 此文件只提供“发布一个 npm 包”的通用能力，由 release.yml 调用。
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref containing the package version to publish.
+        required: true
+        type: string
+      package_directory:
+        description: Path to the package directory from the repository root.
+        required: true
+        type: string
+      package_filter:
+        description: pnpm filter for the package workspace.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  # npm --provenance 使用 GitHub OIDC 临时令牌证明发布来源。
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        # 严格使用锁文件，保证发布时的依赖与代码提交一致。
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm --filter "${{ inputs.package_filter }}" build
+
+      - name: Publish package
+        working-directory: ${{ inputs.package_directory }}
+        run: |
+          # 重跑 workflow 时，已发布的相同版本会被安全跳过。
+          if npm view "$(node -p \"require('./package.json').name\")@$(node -p \"require('./package.json').version\")" version >/dev/null 2>&1; then
+            echo "This version is already published; skipping."
+          else
+            npm publish --access public --provenance
+          fi

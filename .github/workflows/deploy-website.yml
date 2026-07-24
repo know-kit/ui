@@ -1,0 +1,97 @@
+name: Deploy website
+
+on:
+  # 此文件不能自行触发，只能由 release.yml 调用。
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref to build and deploy.
+        required: true
+        type: string
+      remote_app_dir:
+        description: Remote directory containing the Docker Compose files.
+        required: true
+        type: string
+      docs_root:
+        description: Remote directory that serves the static website files.
+        required: true
+        type: string
+      port:
+        description: Local port used by the remote health check.
+        required: true
+        type: string
+    secrets:
+      ssh_known_hosts:
+        required: true
+      deploy_host:
+        required: true
+      deploy_user:
+        required: true
+      deploy_key:
+        required: true
+
+permissions:
+  # 部署过程只读取仓库代码；服务器权限来自调用方传入的 SSH 密钥。
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        # 严格使用锁文件，保证构建结果可复现。
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspaces and run tests
+        # pnpm build 会通过 Turbo 构建全部 workspace，也包含 website。
+        run: pnpm build && pnpm exec vitest run
+
+      - name: Configure SSH
+        # known_hosts 用于确认连接的是预期服务器，防止错误连接。
+        env:
+          SSH_KNOWN_HOSTS: ${{ secrets.ssh_known_hosts }}
+        run: |
+          test -n "$SSH_KNOWN_HOSTS"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy static website
+        env:
+          DEPLOY_HOST: ${{ secrets.deploy_host }}
+          DEPLOY_USER: ${{ secrets.deploy_user }}
+          DEPLOY_KEY: ${{ secrets.deploy_key }}
+          REMOTE_APP_DIR: ${{ inputs.remote_app_dir }}
+          WEBSITE_ROOT: ${{ inputs.docs_root }}
+          WEBSITE_PORT: ${{ inputs.port }}
+        run: |
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_USER"
+          test -n "$DEPLOY_KEY"
+          test -n "$REMOTE_APP_DIR"
+          test -n "$WEBSITE_ROOT"
+          test -n "$WEBSITE_PORT"
+          install -m 600 /dev/null ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_ed25519
+          ssh -i ~/.ssh/id_ed25519 "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$REMOTE_APP_DIR' '$WEBSITE_ROOT'"
+          scp -i ~/.ssh/id_ed25519 deploy/ui/docker-compose.yml deploy/ui/nginx.conf "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_APP_DIR/"
+          # --delete 让服务器文件与本次构建完全一致，旧文件会被移除。
+          rsync -az --delete -e "ssh -i ~/.ssh/id_ed25519" apps/ui-website/docs-dist/ "$DEPLOY_USER@$DEPLOY_HOST:$WEBSITE_ROOT/"
+          # 启动服务后立即做本机健康检查；失败会让整个发布失败。
+          ssh -i ~/.ssh/id_ed25519 "$DEPLOY_USER@$DEPLOY_HOST" "cd '$REMOTE_APP_DIR' && UI_DOCS_ROOT='$WEBSITE_ROOT' UI_PORT='$WEBSITE_PORT' docker compose -f docker-compose.yml up -d && curl --fail --silent --show-error 'http://127.0.0.1:$WEBSITE_PORT/' > /dev/null"

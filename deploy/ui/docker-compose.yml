@@ -1,0 +1,10 @@
+services:
+  ui-docs:
+    image: nginx:1.29-alpine
+    container_name: kno-ui-docs
+    restart: unless-stopped
+    ports:
+      - '${UI_PORT}:80'
+    volumes:
+      - '${UI_DOCS_ROOT}:/usr/share/nginx/html:ro'
+      - './nginx.conf:/etc/nginx/conf.d/default.conf:ro'

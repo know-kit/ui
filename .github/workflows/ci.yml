@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  # 功能分支准备合入 develop 时，先运行基础质量检查。
+  pull_request:
+    branches: [develop]
+
+concurrency:
+  # 同一 PR 有新提交时，取消旧任务，只保留最新一次检查。
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  # CI 只需要读取代码，不授予写入仓库的权限。
+  contents: read
+
+jobs:
+  quality:
+    name: Quality checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        # 严格按 pnpm-lock.yaml 安装，避免 CI 与本地依赖版本不一致。
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspaces
+        # 根目录的 build 会调用 Turbo，构建所有 workspace。
+        run: pnpm build
+
+      - name: Run tests
+        run: pnpm exec vitest run

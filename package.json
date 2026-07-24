@@ -12,9 +12,8 @@
     "commit": "HUSKY_ALLOW_COMMIT=1 czg",
     "changeset": "changeset",
     "changeset:version": "changeset version",
-    "changeset:publish": "changeset publish",
-    "changelog": "conventional-changelog -p conventionalcommits -i RELEASE.md -s",
-    "changelog:first-release": "conventional-changelog -p conventionalcommits --first-release -i RELEASE.md -s",
+    "changelog": "conventional-changelog -p conventionalcommits -i docs/UI_CHANGELOG.md -s",
+    "changelog:first-release": "conventional-changelog -p conventionalcommits --first-release -i docs/UI_CHANGELOG.md -s",
     "changelog:preview": "conventional-changelog -p conventionalcommits --stdout",
     "prepare": "husky",
     "lint": "eslint --fix --cache",
@@ -22,8 +21,7 @@
     "test": "turbo run build && vitest",
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "spellcheck": "cspell lint --dot --gitignore --color --cache --show-suggestions \"packages/**/*.{html,js,cjs,mjs,ts,tsx,css,scss,md}\" \"apps/**/*.{html,js,cjs,mjs,ts,tsx,css,scss,md}\"",
-    "release": "pnpm build && pnpm changeset:publish"
+    "spellcheck": "cspell lint --dot --gitignore --color --cache --show-suggestions --no-must-find-files \"packages/**/*.{html,js,cjs,mjs,ts,tsx,css,scss,md}\" \"apps/**/*.{html,js,cjs,mjs,ts,tsx,css,scss,md}\""
   },
   "type": "module",
   "keywords": [],

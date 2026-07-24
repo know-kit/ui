@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  # 只在目标为 master 的 PR 被关闭时检查是否需要发布。
+  pull_request:
+    branches: [master]
+    types: [closed]
+
+concurrency:
+  # 发布不能被中途取消，避免远程站点只部署了一半。
+  group: release-master
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-docs:
+    name: Deploy documentation
+    # 只有本仓库 develop 真正合并进 master，才允许发布。
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.ref == 'develop' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    # 调用可复用 workflow；这里负责传入本次发布的配置与密钥。
+    uses: ./.github/workflows/deploy-website.yml
+    with:
+      ref: ${{ github.event.pull_request.merge_commit_sha }}
+      remote_app_dir: ${{ vars.JD_UI_APP_DIR }}
+      docs_root: ${{ vars.JD_UI_DOCS_ROOT }}
+      port: ${{ vars.JD_UI_PORT }}
+    secrets:
+      ssh_known_hosts: ${{ secrets.JD_SSH_KNOWN_HOSTS }}
+      deploy_host: ${{ secrets.JD_SSH_HOST }}
+      deploy_user: ${{ secrets.JD_SSH_USER }}
+      deploy_key: ${{ secrets.JD_SSH_PRIVATE_KEY }}
+
+  publish-ui:
+    name: Publish @kno/ui
+    # 文档部署成功后才发布 npm 包。
+    needs: deploy-docs
+    permissions:
+      contents: read
+      # npm provenance 需要 GitHub 的临时身份令牌。
+      id-token: write
+    # 所有 npm 包共用此发布流程，只传入包路径和 pnpm filter。
+    uses: ./.github/workflows/publish-package.yml
+    with:
+      ref: ${{ github.event.pull_request.merge_commit_sha }}
+      package_directory: packages/ui
+      package_filter: '@kno/ui'
