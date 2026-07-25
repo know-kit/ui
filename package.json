@@ -10,8 +10,7 @@
   "main": "index.js",
   "scripts": {
     "commit": "HUSKY_ALLOW_COMMIT=1 czg",
-    "changeset": "changeset",
-    "changeset:version": "changeset version",
+    "changeset": "changeset add --message \"\" && changeset version",
     "changelog": "conventional-changelog -p conventionalcommits -i docs/UI_CHANGELOG.md -s",
     "changelog:first-release": "conventional-changelog -p conventionalcommits --first-release -i docs/UI_CHANGELOG.md -s",
     "changelog:preview": "conventional-changelog -p conventionalcommits --stdout",
