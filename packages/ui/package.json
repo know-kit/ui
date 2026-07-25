@@ -4,6 +4,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/know-kit/ui.git"
+  },
   "description": "",
   "main": "es/index.mjs",
   "module": "es/index.mjs",

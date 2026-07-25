@@ -16,14 +16,9 @@ on:
         description: pnpm filter for the package workspace.
         required: true
         type: string
-    secrets:
-      npm_token:
-        description: npm token authorized to publish the package.
-        required: true
-
 permissions:
   contents: read
-  # npm --provenance 使用 GitHub OIDC 临时令牌证明发布来源。
+  # npm Trusted Publishing 使用 GitHub OIDC 临时令牌授权发布。
   id-token: write
 
 jobs:
@@ -43,7 +38,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          # npm Trusted Publishing requires a current npm CLI; Node 24 provides it.
+          node-version: 24
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
@@ -56,8 +52,6 @@ jobs:
 
       - name: Publish package
         working-directory: ${{ inputs.package_directory }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
         run: |
           # 重跑 workflow 时，已发布的相同版本会被安全跳过。
           package_name=$(node -p "require('./package.json').name")
@@ -65,5 +59,5 @@ jobs:
           if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
             echo "This version is already published; skipping."
           else
-            npm publish --access public --provenance
+            npm publish --access public
           fi

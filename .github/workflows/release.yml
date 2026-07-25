@@ -41,7 +41,7 @@ jobs:
     needs: deploy-docs
     permissions:
       contents: read
-      # npm provenance 需要 GitHub 的临时身份令牌。
+      # npm Trusted Publishing 需要 GitHub 的临时身份令牌。
       id-token: write
     # 所有 npm 包共用此发布流程，只传入包路径和 pnpm filter。
     uses: ./.github/workflows/publish-package.yml
@@ -49,5 +49,3 @@ jobs:
       ref: ${{ github.event.pull_request.merge_commit_sha }}
       package_directory: packages/ui
       package_filter: '@kno/ui'
-    secrets:
-      npm_token: ${{ secrets.JD_UI_NPM_TOKEN }}
