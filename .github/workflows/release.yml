@@ -49,3 +49,5 @@ jobs:
       ref: ${{ github.event.pull_request.merge_commit_sha }}
       package_directory: packages/ui
       package_filter: '@kno/ui'
+    secrets:
+      npm_token: ${{ secrets.JD_UI_NPM_TOKEN }}

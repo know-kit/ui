@@ -16,6 +16,10 @@ on:
         description: pnpm filter for the package workspace.
         required: true
         type: string
+    secrets:
+      npm_token:
+        description: npm token authorized to publish the package.
+        required: true
 
 permissions:
   contents: read
@@ -52,6 +56,8 @@ jobs:
 
       - name: Publish package
         working-directory: ${{ inputs.package_directory }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
         run: |
           # 重跑 workflow 时，已发布的相同版本会被安全跳过。
           package_name=$(node -p "require('./package.json').name")
