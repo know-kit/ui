@@ -27,13 +27,11 @@ on:
         required: true
       deploy_user:
         required: true
-      deploy_key:
-        required: true
       deploy_password:
-        required: false
+        required: true
 
 permissions:
-  # 部署过程只读取仓库代码；服务器权限来自调用方传入的 SSH 密钥。
+  # 部署过程只读取仓库代码；服务器权限来自调用方传入的 SSH 密码。
   contents: read
 
 jobs:
@@ -78,7 +76,6 @@ jobs:
         env:
           DEPLOY_HOST: ${{ secrets.deploy_host }}
           DEPLOY_USER: ${{ secrets.deploy_user }}
-          DEPLOY_KEY: ${{ secrets.deploy_key }}
           DEPLOY_PASSWORD: ${{ secrets.deploy_password }}
           REMOTE_APP_DIR: ${{ inputs.remote_app_dir }}
           WEBSITE_ROOT: ${{ inputs.docs_root }}
@@ -86,32 +83,21 @@ jobs:
         run: |
           test -n "$DEPLOY_HOST"
           test -n "$DEPLOY_USER"
+          test -n "$DEPLOY_PASSWORD"
           test -n "$REMOTE_APP_DIR"
           test -n "$WEBSITE_ROOT"
           test -n "$WEBSITE_PORT"
 
-          if [ -n "$DEPLOY_PASSWORD" ]; then
-            # 临时诊断模式：显式禁用公钥认证，只使用组织 Secret 中的密码。
-            sudo apt-get update
-            sudo apt-get install --yes sshpass
-            export SSHPASS="$DEPLOY_PASSWORD"
-            ssh_command=(sshpass -e ssh -o BatchMode=no -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive)
-            scp_command=(sshpass -e scp -o BatchMode=no -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive)
-            rsync_shell='sshpass -e ssh -o BatchMode=no -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive'
-          else
-            test -n "$DEPLOY_KEY"
-            install -m 600 /dev/null ~/.ssh/id_ed25519
-            printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_ed25519
-            # 仅输出公钥指纹，用于确认 GitHub 注入的是预期私钥。
-            ssh-keygen -lf ~/.ssh/id_ed25519
-            ssh_command=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519)
-            scp_command=(scp -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519)
-            rsync_shell='ssh -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519'
-          fi
+          sudo apt-get update
+          sudo apt-get install --yes sshpass
+          export SSHPASS="$DEPLOY_PASSWORD"
+          ssh_command=(sshpass -e ssh -o BatchMode=no -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive)
+          scp_command=(sshpass -e scp -o BatchMode=no -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive)
+          rsync_shell='sshpass -e ssh -o BatchMode=no -o PubkeyAuthentication=no -o PreferredAuthentications=password,keyboard-interactive'
 
           "${ssh_command[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$REMOTE_APP_DIR' '$WEBSITE_ROOT'"
           "${scp_command[@]}" deploy/ui/docker-compose.yml deploy/ui/nginx.conf "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_APP_DIR/"
           # --delete 让服务器文件与本次构建完全一致，旧文件会被移除。
           rsync -az --delete -e "$rsync_shell" apps/ui-website/docs-dist/ "$DEPLOY_USER@$DEPLOY_HOST:$WEBSITE_ROOT/"
           # 启动服务后立即做本机健康检查；失败会让整个发布失败。
-          "${ssh_command[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "cd '$REMOTE_APP_DIR' && UI_DOCS_ROOT='$WEBSITE_ROOT' UI_PORT='$WEBSITE_PORT' docker compose -f docker-compose.yml up -d && curl --fail --silent --show-error 'http://127.0.0.1:$WEBSITE_PORT/' > /dev/null"
+          "${ssh_command[@]}" "$DEPLOY_USER@$DEPLOY_HOST" "cd '$REMOTE_APP_DIR' && UI_DOCS_ROOT='$WEBSITE_ROOT' UI_PORT='$WEBSITE_PORT' docker-compose -f docker-compose.yml up -d && curl --fail --silent --show-error 'http://127.0.0.1:$WEBSITE_PORT/' > /dev/null"

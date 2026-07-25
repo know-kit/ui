@@ -33,7 +33,6 @@ jobs:
       ssh_known_hosts: ${{ secrets.JD_SSH_KNOWN_HOSTS }}
       deploy_host: ${{ secrets.JD_SSH_HOST }}
       deploy_user: ${{ secrets.JD_SSH_USER }}
-      deploy_key: ${{ secrets.JD_SSH_PRIVATE_KEY }}
       deploy_password: ${{ secrets.JD_SSH_PASSWORD }}
 
   publish-ui:
