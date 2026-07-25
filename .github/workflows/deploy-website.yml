@@ -89,9 +89,11 @@ jobs:
           test -n "$WEBSITE_PORT"
           install -m 600 /dev/null ~/.ssh/id_ed25519
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_ed25519
-          ssh -i ~/.ssh/id_ed25519 "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$REMOTE_APP_DIR' '$WEBSITE_ROOT'"
-          scp -i ~/.ssh/id_ed25519 deploy/ui/docker-compose.yml deploy/ui/nginx.conf "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_APP_DIR/"
+          # 仅输出公钥指纹，用于确认 GitHub 注入的是预期私钥。
+          ssh-keygen -lf ~/.ssh/id_ed25519
+          ssh -o BatchMode=yes -i ~/.ssh/id_ed25519 "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$REMOTE_APP_DIR' '$WEBSITE_ROOT'"
+          scp -o BatchMode=yes -i ~/.ssh/id_ed25519 deploy/ui/docker-compose.yml deploy/ui/nginx.conf "$DEPLOY_USER@$DEPLOY_HOST:$REMOTE_APP_DIR/"
           # --delete 让服务器文件与本次构建完全一致，旧文件会被移除。
-          rsync -az --delete -e "ssh -i ~/.ssh/id_ed25519" apps/ui-website/docs-dist/ "$DEPLOY_USER@$DEPLOY_HOST:$WEBSITE_ROOT/"
+          rsync -az --delete -e "ssh -o BatchMode=yes -i ~/.ssh/id_ed25519" apps/ui-website/docs-dist/ "$DEPLOY_USER@$DEPLOY_HOST:$WEBSITE_ROOT/"
           # 启动服务后立即做本机健康检查；失败会让整个发布失败。
-          ssh -i ~/.ssh/id_ed25519 "$DEPLOY_USER@$DEPLOY_HOST" "cd '$REMOTE_APP_DIR' && UI_DOCS_ROOT='$WEBSITE_ROOT' UI_PORT='$WEBSITE_PORT' docker compose -f docker-compose.yml up -d && curl --fail --silent --show-error 'http://127.0.0.1:$WEBSITE_PORT/' > /dev/null"
+          ssh -o BatchMode=yes -i ~/.ssh/id_ed25519 "$DEPLOY_USER@$DEPLOY_HOST" "cd '$REMOTE_APP_DIR' && UI_DOCS_ROOT='$WEBSITE_ROOT' UI_PORT='$WEBSITE_PORT' docker compose -f docker-compose.yml up -d && curl --fail --silent --show-error 'http://127.0.0.1:$WEBSITE_PORT/' > /dev/null"

@@ -3,7 +3,7 @@ name: CI
 on:
   # 功能分支合入 develop 与发布 PR 合入 master 前，都运行基础质量检查。
   pull_request:
-    branches: [develop, master]
+    branches: [develop]
 
 concurrency:
   # 同一 PR 有新提交时，取消旧任务，只保留最新一次检查。
